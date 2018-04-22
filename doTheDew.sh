@@ -32,7 +32,7 @@ calcRes (){
 
 all (){
     echo "running all:"
-    #bm25
+    bm25
     dirichlet
     jelinek
     pivoted
@@ -43,7 +43,7 @@ bm25 (){
     echo "running bm25"
     maxres="0.0"
     METHOD="bm25"
-    CF="$METHOD"".toml"
+    CF="config.toml"
     RES="$METHOD""-RESULTS.txt"
     rm "results/""$RES" &>/dev/null
     data="$B = 0, $K1 = 0, $K = $0"
@@ -51,10 +51,11 @@ bm25 (){
     K1="bm25k1"
     K3="bm25k3"
     B="bm25b"
-    for b in $(seq 0.7 0.01 0.9)
+    sed -i "s/\(superranker *= *\).*/\1"\"$METHOD\""/" $CF
+    for b in $(seq 0.8 0.05 1)
     do
 	sed -i "s/\($B *= *\).*/\1$b/" $CF
-	for k1 in $(seq 1.7 0.02 1.9)
+	for k1 in $(seq 1.7 0.05 2)
 	do
 	    sed -i "s/\($K1 *= *\).*/\1$k1/" $CF
 	    k3=0
@@ -62,11 +63,13 @@ bm25 (){
 	    result=$(./competition "$CF" | grep -E 'The MAP for the training queries is'| grep -Eo "[0-9]+([.][0-9]+)?")
 	    if [ `expr "$result" ">" "$maxres"` == "1" ]; then
 		maxres=$result
-		data="$B = $b, $K1 = $k1, $K = $k3"
+		data="$B = $b, $K1 = $k1, $K3 = $k3"
+		echo "$data"
 	    fi
 	    echo "$B = $b, $K1 = $k1, $K3 = $k3 $result" >> "results/""$METHOD""-RESULTS.txt"
 	done
     done
+    echo "$data"
     echo "$METHOD:" >> "results/final_results.txt"
     valoare=`cat "results/""$METHOD""-RESULTS.txt" | grep "$data"`
     echo "$valoare" >> "results/final_results.txt"
